@@ -3,10 +3,23 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const app = express();
-app.use(cors({
-  origin: 'https://kondo-bbj.github.io' // Allow your frontend domain
-}));
+
+const allowedOrigins = [
+  "https://kondo-bbj.github.io",
+  "https://grainforesight.com"
+];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  next();
+});
+
 const port = 3000;
+
 
 app.use(express.json());
 
