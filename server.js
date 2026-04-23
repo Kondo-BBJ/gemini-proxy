@@ -13,6 +13,17 @@ const allowedOrigins = [
   "https://www.grainforesight.com"
 ];
 
+app.get("/debug", (req, res) => {
+  res.json({
+    ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+    origin: req.headers.origin || null,
+    referer: req.headers.referer || null,
+    host: req.headers.host,
+    userAgent: req.headers["user-agent"],
+    allHeaders: req.headers
+  });
+});
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const referer = req.headers.referer || "";
