@@ -16,38 +16,38 @@ const allowedOrigins = [
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const referer = req.headers.referer || "";
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
 
-  // Allow your domain even if Origin is missing
-  const isHostinger =
-    referer.startsWith("https://grainforesight.com") ||
-    referer.startsWith("https://www.grainforesight.com");
-
-  // Block GitHub Pages
-  const isGithub = referer.includes("github.io");
-
-  if (isGithub) {
+  // 1. Block GitHub Pages by referer
+  if (referer.includes("github.io")) {
     return res.status(403).json({ error: "Forbidden: GitHub Pages blocked" });
   }
 
-  // If Origin exists, enforce whitelist
-  if (origin) {
-    if (!allowedOrigins.includes(origin)) {
-      return res.status(403).json({ error: "Forbidden: Origin not allowed" });
-    }
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    return next();
-  }
+  // 2. Allow Hostinger by IP (Hostinger uses 2 main ranges)
+  const isHostingerIP =
+    ip.startsWith("185.") ||  // Hostinger Europe
+    ip.startsWith("154.");    // Hostinger US/Asia
 
-  // If Origin is missing, allow only Hostinger
-  if (isHostinger) {
+  if (isHostingerIP) {
     res.header("Access-Control-Allow-Origin", "https://grainforesight.com");
     res.header("Access-Control-Allow-Headers", "Content-Type");
     return next();
   }
 
-  // Everything else blocked
-  return res.status(403).json({ error: "Forbidden: Missing or invalid Origin" });
+  // 3. If Origin exists, enforce whitelist
+  const allowedOrigins = [
+    "https://grainforesight.com",
+    "https://www.grainforesight.com"
+  ];
+
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    return next();
+  }
+
+  // 4. Block everything else
+  return res.status(403).json({ error: "Forbidden: Unauthorized source" });
 });
 
 // -------------------------------
