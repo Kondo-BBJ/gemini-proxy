@@ -5,20 +5,37 @@ require("dotenv").config();
 const app = express();
 app.use(express.json());
 
-// -------------------------------
-// 1. STRICT DOMAIN WHITELIST
-// -------------------------------
+// ----------------------------------------------------
+// DEBUG ENDPOINT (helps us inspect headers if needed)
+// ----------------------------------------------------
+app.get("/debug", (req, res) => {
+  res.json({
+    ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
+    origin: req.headers.origin || null,
+    referer: req.headers.referer || null,
+    userAgent: req.headers["user-agent"],
+    allHeaders: req.headers
+  });
+});
+
+// ----------------------------------------------------
+// ALLOWED ORIGINS
+// ----------------------------------------------------
 const allowedOrigins = [
   "https://grainforesight.com",
   "https://www.grainforesight.com",
-  "https://app.powerbi.com"
+  "https://app.powerbi.com"   // Power BI is the REAL caller
 ];
 
+// ----------------------------------------------------
+// CORS MIDDLEWARE
+// ----------------------------------------------------
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  const referer = req.headers.referer || "";
 
   // Block GitHub Pages explicitly
-  if (req.headers.referer && req.headers.referer.includes("github.io")) {
+  if (referer.includes("github.io")) {
     return res.status(403).json({ error: "Forbidden: GitHub Pages blocked" });
   }
 
@@ -32,40 +49,13 @@ app.use((req, res, next) => {
     return next();
   }
 
-  // If no Origin, block
+  // If no Origin → block
   return res.status(403).json({ error: "Forbidden: Missing Origin" });
 });
 
-  // 2. Allow Hostinger by IP (Hostinger uses 2 main ranges)
-  const isHostingerIP =
-    ip.startsWith("185.") ||  // Hostinger Europe
-    ip.startsWith("154.");    // Hostinger US/Asia
-
-  if (isHostingerIP) {
-    res.header("Access-Control-Allow-Origin", "https://grainforesight.com");
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    return next();
-  }
-
-  // 3. If Origin exists, enforce whitelist
-  const allowedOrigins = [
-    "https://grainforesight.com",
-    "https://www.grainforesight.com"
-  ];
-
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    return next();
-  }
-
-  // 4. Block everything else
-  return res.status(403).json({ error: "Forbidden: Unauthorized source" });
-});
-
-// -------------------------------
-// 2. GEMINI PROXY ENDPOINT
-// -------------------------------
+// ----------------------------------------------------
+// GEMINI PROXY ENDPOINT
+// ----------------------------------------------------
 app.post("/gemini", async (req, res) => {
   try {
     const response = await fetch(
@@ -87,9 +77,9 @@ app.post("/gemini", async (req, res) => {
   }
 });
 
-// -------------------------------
-// 3. START SERVER
-// -------------------------------
+// ----------------------------------------------------
+// START SERVER
+// ----------------------------------------------------
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Gemini proxy running on port ${PORT}`);
