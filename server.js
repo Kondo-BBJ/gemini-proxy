@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 
 // -------------------------------
-// 1. DOMAIN WHITELIST
+// 1. STRICT DOMAIN WHITELIST
 // -------------------------------
 const allowedOrigins = [
   "https://grainforesight.com",
@@ -17,13 +17,25 @@ const allowedOrigins = [
 app.use((req, res, next) => {
   const origin = req.headers.origin;
 
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    next();
-  } else {
+  // Block requests with NO Origin (server-to-server, curl, GitHub Pages, etc.)
+  if (!origin) {
+    return res.status(403).json({ error: "Forbidden: Missing Origin" });
+  }
+
+  // Block requests with Origin:null (GitHub Pages, local files)
+  if (origin === "null") {
+    return res.status(403).json({ error: "Forbidden: Null Origin" });
+  }
+
+  // Allow only your Hostinger domain
+  if (!allowedOrigins.includes(origin)) {
     return res.status(403).json({ error: "Forbidden: Origin not allowed" });
   }
+
+  // Set CORS headers for allowed domain
+  res.header("Access-Control-Allow-Origin", origin);
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  next();
 });
 
 // -------------------------------
