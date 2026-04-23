@@ -10,29 +10,31 @@ app.use(express.json());
 // -------------------------------
 const allowedOrigins = [
   "https://grainforesight.com",
-  "https://www.grainforesight.com"
+  "https://www.grainforesight.com",
+  "https://app.powerbi.com"
 ];
-
-app.get("/debug", (req, res) => {
-  res.json({
-    ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
-    origin: req.headers.origin || null,
-    referer: req.headers.referer || null,
-    host: req.headers.host,
-    userAgent: req.headers["user-agent"],
-    allHeaders: req.headers
-  });
-});
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const referer = req.headers.referer || "";
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
 
-  // 1. Block GitHub Pages by referer
-  if (referer.includes("github.io")) {
+  // Block GitHub Pages explicitly
+  if (req.headers.referer && req.headers.referer.includes("github.io")) {
     return res.status(403).json({ error: "Forbidden: GitHub Pages blocked" });
   }
+
+  // If Origin exists, enforce whitelist
+  if (origin) {
+    if (!allowedOrigins.includes(origin)) {
+      return res.status(403).json({ error: "Forbidden: Origin not allowed" });
+    }
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    return next();
+  }
+
+  // If no Origin, block
+  return res.status(403).json({ error: "Forbidden: Missing Origin" });
+});
 
   // 2. Allow Hostinger by IP (Hostinger uses 2 main ranges)
   const isHostingerIP =
