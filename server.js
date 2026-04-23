@@ -1,86 +1,73 @@
-const express = require("express");
-const cors = require("cors");
-require("dotenv").config();
-
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
 const app = express();
-app.use(express.json());
 
-// ----------------------------------------------------
-// DEBUG ENDPOINT (helps us inspect headers if needed)
-// ----------------------------------------------------
-app.get("/debug", (req, res) => {
-  res.json({
-    ip: req.headers["x-forwarded-for"] || req.socket.remoteAddress,
-    origin: req.headers.origin || null,
-    referer: req.headers.referer || null,
-    userAgent: req.headers["user-agent"],
-    allHeaders: req.headers
-  });
-});
-
-// ----------------------------------------------------
-// ALLOWED ORIGINS
-// ----------------------------------------------------
 const allowedOrigins = [
-  "https://grainforesight.com",
-  "https://www.grainforesight.com",
-  "https://app.powerbi.com"   // Power BI is the REAL caller
+  "https://kondo-bbj.github.io",
+  "https://grainforesight.com"
 ];
 
-// ----------------------------------------------------
-// CORS MIDDLEWARE
-// ----------------------------------------------------
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const referer = req.headers.referer || "";
-
-  // Block GitHub Pages explicitly
-  if (referer.includes("github.io")) {
-    return res.status(403).json({ error: "Forbidden: GitHub Pages blocked" });
-  }
-
-  // If Origin exists, enforce whitelist
-  if (origin) {
-    if (!allowedOrigins.includes(origin)) {
-      return res.status(403).json({ error: "Forbidden: Origin not allowed" });
-    }
+  if (allowedOrigins.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Headers", "Content-Type");
-    return next();
   }
-
-  // If no Origin → block
-  return res.status(403).json({ error: "Forbidden: Missing Origin" });
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  next();
 });
 
-// ----------------------------------------------------
-// GEMINI PROXY ENDPOINT
-// ----------------------------------------------------
-app.post("/gemini", async (req, res) => {
+const port = 3000;
+
+
+app.use(express.json());
+
+app.post('/gemini', async (req, res) => {
+  const prompt = req.body.prompt;
+  if (!prompt) return res.status(400).send('Missing prompt');
+
   try {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" +
-        process.env.GEMINI_API_KEY,
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent`,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req.body)
+        contents: [{ parts: [{ text: prompt }] }]
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        params: { key: process.env.GEMINI_API_KEY }
       }
     );
-
-    const data = await response.json();
-    res.json(data);
-
+    res.json(response.data);
   } catch (error) {
-    console.error("Proxy error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error('Gemini API error:', error.response?.data || error.message);
+    res.status(500).send(`Gemini API error:\n${JSON.stringify(error.response?.data || error.message, null, 2)}`);
   }
 });
 
-// ----------------------------------------------------
-// START SERVER
-// ----------------------------------------------------
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Gemini proxy running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`✅ Proxy server running at http://localhost:${port}`);
+});
+
+
+app.post('/gemini', async (req, res) => {
+  const prompt = req.body.prompt;
+  if (!prompt) return res.status(400).send('Missing prompt');
+
+  try {
+    const response = await axios.post(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent',
+      {
+        contents: [{ parts: [{ text: prompt }] }]
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        params: { key: process.env.GEMINI_API_KEY }
+      }
+    );
+    res.json(response.data);
+  } catch (error) {
+    console.error('Gemini API error:', error.response?.data || error.message);
+    res.status(500).send(`Gemini API error:\n${JSON.stringify(error.response?.data || error.message, null, 2)}`);
+  }
 });
