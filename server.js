@@ -30,7 +30,7 @@ app.post('/gemini', async (req, res) => {
 try {
   const response = await axios.post(
     // Use the v1beta endpoint and Gemini 3.1 Flash (The 2026 Stable Model)
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-preview:generateContent`,
     {
       contents: [{ parts: [{ text: prompt }] }]
     },
