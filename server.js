@@ -48,7 +48,8 @@ try {
   console.error('Final Debug:', JSON.stringify(error.response?.data, null, 2));
   res.status(500).json(error.response?.data);
 }
-
+});
+  
 app.listen(port, () => {
   console.log(`✅ Proxy server running at http://localhost:${port}`);
 });
