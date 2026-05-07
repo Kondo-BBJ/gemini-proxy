@@ -28,17 +28,22 @@ app.post('/gemini', async (req, res) => {
   if (!prompt) return res.status(400).send('Missing prompt');
 
   try {
-    const response = await axios.post(
-
-`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent`,
-      {
-        contents: [{ parts: [{ text: prompt }] }]
-      },
-      {
-        headers: { 'Content-Type': 'application/json' },
-        params: { key: process.env.GEMINI_API_KEY }
-      }
-    );
+  const response = await axios.post(
+  // Use v1 with gemini-2.0-flash (The current stable production model)
+  `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent`,
+  {
+    contents: [{ parts: [{ text: prompt }] }]
+  },
+  {
+    headers: { 
+      'Content-Type': 'application/json' 
+    },
+    params: { 
+      key: process.env.GEMINI_API_KEY 
+    }
+  }
+);
+    
     res.json(response.data);
   } catch (error) {
     console.error('Gemini API error:', error.response?.data || error.message);
