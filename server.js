@@ -35,13 +35,15 @@ try {
       contents: [{ parts: [{ text: prompt }] }]
     },
     {
-      headers: { 
-        'Content-Type': 'application/json',
-        // 2. MUST pass the key here to bypass the Singapore location block
-        'x-goog-api-key': process.env.GEMINI_API_KEY 
-      }
+    headers: { 
+      'Content-Type': 'application/json',
+      'x-goog-api-key': process.env.GEMINI_API_KEY,
+      // 💡 以下の2行を追加してください
+      'X-Goog-User-Project': 'YOUR_PROJECT_ID', gemini-proxy-new-495613 // ← Google Cloudで確認できる「プロジェクトID」
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' // ← ブラウザのふりをする
     }
-  );
+  }
+);
   res.json(response.data);
 } catch (error) {
   // If this still fails, it will give us a NEW specific error code
@@ -49,7 +51,7 @@ try {
   res.status(500).json(error.response?.data);
 }
 });
-  
+
 app.listen(port, () => {
   console.log(`✅ Proxy server running at http://localhost:${port}`);
 });
