@@ -30,7 +30,7 @@ app.post('/gemini', async (req, res) => {
   try {
     const response = await axios.post(
 
-`https://generativelanguage.googleapis.com/v1/models/gemini-3-flash:generateContent`,
+`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent`,
       {
         contents: [{ parts: [{ text: prompt }] }]
       },
