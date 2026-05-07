@@ -39,8 +39,8 @@ try {
       'Content-Type': 'application/json',
       'x-goog-api-key': process.env.GEMINI_API_KEY,
       // 💡 以下の2行を追加してください
-      'X-Goog-User-Project': 'gemini-proxy-new-495613',  // ← Google Cloudで確認できる「プロジェクトID」
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' // ← ブラウザのふりをする
+      'x-goog-user-project': 'gemini-proxy-new-495613',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
     }
   }
 );
