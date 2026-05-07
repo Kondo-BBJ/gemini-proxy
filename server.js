@@ -29,25 +29,25 @@ app.post('/gemini', async (req, res) => {
 
 try {
   const response = await axios.post(
-    // Use the v1beta endpoint and Gemini 3.1 Flash (The 2026 Stable Model)
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent`,
+    // 1. MUST use v1beta to trigger the 'Paid Tier' check
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`,
     {
-      
       contents: [{ parts: [{ text: prompt }] }]
     },
     {
       headers: { 
         'Content-Type': 'application/json',
+        // 2. MUST pass the key here to bypass the Singapore location block
         'x-goog-api-key': process.env.GEMINI_API_KEY 
       }
     }
   );
   res.json(response.data);
 } catch (error) {
-  console.error('Final Debug Info:', JSON.stringify(error.response?.data, null, 2));
+  // If this still fails, it will give us a NEW specific error code
+  console.error('Final Debug:', JSON.stringify(error.response?.data, null, 2));
   res.status(500).json(error.response?.data);
 }
-});
 
 app.listen(port, () => {
   console.log(`✅ Proxy server running at http://localhost:${port}`);
