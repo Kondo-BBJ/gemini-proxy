@@ -20,6 +20,14 @@ app.use((req, res, next) => {
 
 const port = 3000;
 
+const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" + API_KEY, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+        "x-goog-user-project": "gemini-proxy-new-495613" // THE FIX
+    },
+    body: JSON.stringify(yourData)
+});
 
 app.use(express.json());
 
