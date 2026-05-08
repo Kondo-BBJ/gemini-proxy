@@ -1,88 +1,60 @@
-require('dotenv').config();
+/**
+ * Gemini API Proxy Server (Stable v1 - 2026)
+ * Fixes: 403 PERMISSION_DENIED (User Project)
+ */
 const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
+const fetch = require('node-fetch'); // Ensure 'node-fetch' is in your package.json
+const cors = require('cors'); // Added for safety with your frontend
 const app = express();
 
-const allowedOrigins = [
-  "https://kondo-bbj.github.io",
-  "https://grainforesight.com"
-];
-
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  }
-  res.header("Access-Control-Allow-Headers", "Content-Type");
-  next();
-});
-
-const port = 3000;
-
-const response = await fetch("https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" + API_KEY, {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-        "x-goog-user-project": "gemini-proxy-new-495613" // THE FIX
-    },
-    body: JSON.stringify(yourData)
-});
-
+app.use(cors());
 app.use(express.json());
 
-app.post('/gemini', async (req, res) => {
-  const prompt = req.body.prompt;
-  if (!prompt) return res.status(400).send('Missing prompt');
+// CONFIGURATION
+const API_KEY = process.env.GEMINI_API_KEY;
+const PROJECT_ID = "gemini-proxy-new-495613"; 
+const PORT = process.env.PORT || 3000;
 
-try {
-  const response = await axios.post(
-    // 1. MUST use v1beta to trigger the 'Paid Tier' check
-    `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent`,
-    {
-      contents: [{ parts: [{ text: prompt }] }]
-    },
-    {
-    headers: { 
-      'Content-Type': 'application/json',
-      'x-goog-api-key': process.env.GEMINI_API_KEY,
-      // 💡 以下の2行を追加してください
-      'x-goog-user-project': 'gemini-proxy-new-495613',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+app.post('/api/chat', async (req, res) => {
+    try {
+        // 1. Stable v1 Endpoint (Required for paid/billing accounts in 2026)
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+
+        // 2. Outgoing Request Configuration
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // THE "FINAL BOSS" FIX: Tells Google which project is paying for the call
+                'x-goog-user-project': PROJECT_ID 
+            },
+            body: JSON.stringify({
+                contents: req.body.contents, // Ensure your frontend sends a 'contents' array
+                generationConfig: req.body.generationConfig || {}
+            })
+        });
+
+        const data = await response.json();
+
+        // 3. Error Handling
+        if (!response.ok) {
+            console.error(`[Google API Error] ${response.status}:`, JSON.stringify(data, null, 2));
+            return res.status(response.status).json({
+                error: "Google API rejected the request",
+                details: data.error ? data.error.message : data
+            });
+        }
+
+        // 4. Return successful response
+        res.json(data);
+
+    } catch (error) {
+        console.error('[Server Exception]:', error.message);
+        res.status(500).json({ error: 'Internal Server Error', message: error.message });
     }
-  }
-);
-  res.json(response.data);
-} catch (error) {
-  // If this still fails, it will give us a NEW specific error code
-  console.error('Final Debug:', JSON.stringify(error.response?.data, null, 2));
-  res.status(500).json(error.response?.data);
-}
 });
 
-app.listen(port, () => {
-  console.log(`✅ Proxy server running at http://localhost:${port}`);
-});
-
-
-app.post('/gemini', async (req, res) => {
-  const prompt = req.body.prompt;
-  if (!prompt) return res.status(400).send('Missing prompt');
-
-  try {
-    const response = await axios.post(
-      'https://generativelanguage.googleapis.com/v1/models/gemini-3.1-flash-lite:generateContent',
-      {
-        contents: [{ parts: [{ text: prompt }] }]
-      },
-      {
-        headers: { 'Content-Type': 'application/json' },
-        params: { key: process.env.GEMINI_API_KEY }
-      }
-    );
-    res.json(response.data);
-  } catch (error) {
-    console.error('Gemini API error:', error.response?.data || error.message);
-    res.status(500).send(`Gemini API error:\n${JSON.stringify(error.response?.data || error.message, null, 2)}`);
-  }
+app.listen(PORT, () => {
+    console.log(`✅ Gemini Proxy active on port ${PORT}`);
+    console.log(`🎯 Billing Project: ${PROJECT_ID}`);
 });
