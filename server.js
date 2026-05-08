@@ -30,7 +30,7 @@ app.post('/gemini', async (req, res) => {
 try {
   const response = await axios.post(
     // 1. MUST use v1beta to trigger the 'Paid Tier' check
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent`,
     {
       contents: [{ parts: [{ text: prompt }] }]
     },
@@ -63,7 +63,7 @@ app.post('/gemini', async (req, res) => {
 
   try {
     const response = await axios.post(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/gemini-3.1-flash-lite:generateContent',
       {
         contents: [{ parts: [{ text: prompt }] }]
       },
