@@ -3,8 +3,7 @@
  * Fixes: 403 PERMISSION_DENIED (User Project)
  */
 const express = require('express');
-const fetch = require('node-fetch'); // Ensure 'node-fetch' is in your package.json
-const cors = require('cors'); // Added for safety with your frontend
+// const fetch = require('node-fetch'); // Node 22 has fetch built-in!const cors = require('cors'); // Added for safety with your frontend
 const app = express();
 
 app.use(cors());
