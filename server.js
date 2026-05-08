@@ -12,7 +12,6 @@ app.post('/api/chat', async (req, res) => {
     try {
         const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
         
-        // Using native Node 22 fetch!
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -29,4 +28,5 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("Proxy online!"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Proxy running on port ${PORT}`));
