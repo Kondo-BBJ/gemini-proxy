@@ -1,7 +1,7 @@
-import express from "express";
-import cors from "cors";
-import bodyParser from "body-parser";
-import { GoogleAuth } from "google-auth-library";
+const express = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const { GoogleAuth } = require("google-auth-library");
 
 const app = express();
 app.use(cors());
