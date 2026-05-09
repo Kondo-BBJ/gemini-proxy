@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: gemini-proxy-us  # A new name to distinguish it from the old one
+    env: node
+    region: oregon         # Moving to US West to bypass the location error
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false        # Render will prompt you to enter the key in the dashboard
+      - key: NODE_VERSION
+        value: 20          # Ensures a modern Node environment
