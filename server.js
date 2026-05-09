@@ -1,47 +1,50 @@
-const express = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const { GoogleAuth } = require("google-auth-library");
-
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
 
-const auth = new GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON),
-  scopes: ["https://www.googleapis.com/auth/cloud-platform"]
+const allowedOrigins = [
+  "https://kondo-bbj.github.io",
+  "https://grainforesight.com"
+];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  next();
 });
 
-const PROJECT_ID = "grainforesight-vertex";
-const LOCATION = "us-central1";
-const MODEL = "gemini-2.0-flash";
+const port = 3000;
+app.use(express.json());
 
-app.post("/generate", async (req, res) => {
+// USE ONLY ONE POST ROUTE
+app.post('/gemini', async (req, res) => {
+  const prompt = req.body.prompt;
+  if (!prompt) return res.status(400).send('Missing prompt');
+
   try {
-    const client = await auth.getClient();
-
-    const url = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${MODEL}:generateContent`;
-
-    const response = await client.request({
-      url,
-      method: "POST",
-      data: {
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: req.body.prompt }]
-          }
-        ]
+    const response = await axios.post(
+      // Updated to Gemini 3.1 Flash Lite (Preview) for 2026 standards
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent`,
+      {
+        contents: [{ parts: [{ text: prompt }] }]
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        params: { key: process.env.GEMINI_API_KEY }
       }
-    });
-
+    );
     res.json(response.data);
-  } catch (err) {
-    console.error("Vertex AI Error:", err);
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error('Gemini API error:', error.response?.data || error.message);
+    res.status(500).send(`Gemini API error:\n${JSON.stringify(error.response?.data || error.message, null, 2)}`);
   }
 });
 
-app.listen(3000, () => {
-  console.log("Vertex AI Proxy running on port 3000");
+app.listen(port, () => {
+  console.log(`✅ Proxy server running at http://localhost:${port}`);
 });
