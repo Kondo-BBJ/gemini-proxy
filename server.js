@@ -1,32 +1,47 @@
-const express = require('express');
-const cors = require('cors');
+import express from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import { GoogleAuth } from "google-auth-library";
+
 const app = express();
-
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-const API_KEY = process.env.GEMINI_API_KEY;
-const PROJECT_ID = "gemini-proxy-new-495613";
-
-app.post('/api/chat', async (req, res) => {
-    try {
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-goog-user-project': PROJECT_ID
-            },
-            body: JSON.stringify(req.body)
-        });
-
-        const data = await response.json();
-        res.status(response.status).json(data);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+const auth = new GoogleAuth({
+  credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON),
+  scopes: ["https://www.googleapis.com/auth/cloud-platform"]
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Proxy running on port ${PORT}`));
+const PROJECT_ID = "grainforesight-vertex";
+const LOCATION = "us-central1";
+const MODEL = "gemini-2.0-flash";
+
+app.post("/generate", async (req, res) => {
+  try {
+    const client = await auth.getClient();
+
+    const url = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${MODEL}:generateContent`;
+
+    const response = await client.request({
+      url,
+      method: "POST",
+      data: {
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: req.body.prompt }]
+          }
+        ]
+      }
+    });
+
+    res.json(response.data);
+  } catch (err) {
+    console.error("Vertex AI Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(3000, () => {
+  console.log("Vertex AI Proxy running on port 3000");
+});
