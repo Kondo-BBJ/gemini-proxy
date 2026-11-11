@@ -5,7 +5,8 @@ const axios = require('axios');
 const app = express();
 
 const allowedOrigins = [
-  "https://kondo-bbj.github.io",
+  "https://ttc.grainforesight.com",
+  "https://ugc.grainforesight.com",
   "https://grainforesight.com"
 ];
 
